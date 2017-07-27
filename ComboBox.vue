@@ -99,7 +99,6 @@
             @mouseover="typeAheadPointer = x"
             @mousedown.prevent.stop="select(x)"
             :style="isSelected(option) && styleSelectOptionInDropdown">
-          :text="getOptionLabel(option)"></slot> -->
           <marked-text :originalSlot="isSelected(option) ? $scopedSlots.selectedOptions : $scopedSlots.allOptions"
                        :markedSymbolSlot="$scopedSlots.markedSymbol"
                        :text="getOptionLabel(option)"
@@ -136,7 +135,9 @@ const markedText = {
         const end = this.text.substr(index + this.searchText.length) + last;
         if (start) array.push(start);
         for (let i = 0; i < middle.length; i += 1) {
-          array.push(this.markedSymbolSlot ? this.markedSymbolSlot({ text: middle[i] }) : createElement('b', middle[i]));
+          array.push(this.markedSymbolSlot
+            ? this.markedSymbolSlot({ text: middle[i] })
+            : createElement('b', { class: 'markedSymbol' }, middle[i]));
         }
         if (end) array.push(end);
       } else {
@@ -387,6 +388,9 @@ export default {
     },
     selectedOptions(newValue) {
       this.currentSelectedOptions = newValue;
+      if (this.closeOnSelect) {
+        this.open = false;
+      }
     },
     open(newValue) {
       this.$emit(newValue ? 'open' : 'close');
@@ -622,6 +626,7 @@ export default {
   min-height: 40px;
   position: relative;
 }
+
 .combobox .display {
   display: flex;
   flex-wrap: wrap;
@@ -630,6 +635,7 @@ export default {
   width: 100%;
   cursor: text;
 }
+
 .combobox .display .tag {
   flex-grow: 1;
   position: relative;
@@ -644,6 +650,7 @@ export default {
   line-height: 24px;
   max-width: 100%;
 }
+
 .combobox .display .tag .delete-button {
   position: absolute;
   top: 0;
@@ -653,7 +660,9 @@ export default {
   align-items: center;
   cursor: pointer;
 }
+
 .combobox .display input[type="search"] {
+  max-width: 100%;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -669,15 +678,23 @@ export default {
   box-shadow: none;
   clear: none;
 }
+
 .combobox .display .delete-button {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 5px;
+  flex-grow: 1;
   margin-right: 10px;
   display: flex;
   align-items: center;
   cursor: pointer;
 }
+
 .combobox ul {
   list-style: none;
 }
+
 .combobox ul.dropdown {
   position: absolute;
   overflow: auto;
@@ -689,12 +706,30 @@ export default {
   border-radius: 0 0 4px 4px;
   text-align: left;
 }
+
 .combobox ul li {
   cursor: pointer;
   padding: 2px;
 }
+
 .combobox ul li.highlight {
   background: #41B783;
   color: #fff;
+}
+
+.markedSymbol {
+  display: inline-block;
+  animation: wiggle 1.5s infinite;
+  margin: 0 1px;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(55deg);
+  }
+  50% {
+    transform: rotate(-50deg);
+  }
 }
 </style>

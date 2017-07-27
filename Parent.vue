@@ -81,7 +81,7 @@
         <div class="options">{{ `Создать ${props.text ? '"' + props.text + '"' : 'новый товар'}` }}</div>
       </template>
   
-      </combo-box>
+    </combo-box>
   
   </div>
 </template>
@@ -157,21 +157,5 @@ div.main {
 
 .deleteIcon {
   color: red;
-}
-
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(55deg);
-  }
-  50% {
-    transform: rotate(-50deg);
-  }
-}
-
-.markedSymbol {
-  display: inline-block;
-  animation: wiggle 1.5s infinite;
-  margin: 0 1px;
 }
 </style>
