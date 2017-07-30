@@ -4,7 +4,7 @@
            v-model="search">
   
     <combo-box v-model="selectedOptions"
-               :options="groups"
+               :options="options"
                groupLabel="name"
                groupValues="values"
                optionLabel="name"
@@ -15,17 +15,16 @@
                :hideSelected="true"
                :resetAfter="false"
                :searchable="true"
-               :taggable="true"
                :multiple="true"
                :repeatable="false"
                placeholder="Выберите товар"
-               width="300px"
-               :maxHeight="200"
+               width="400px"
+               :maxHeight="500"
                :transitionSpeed="{ enter: 1000, leave: 1500 }"
                position="bottom"
                :styleSelectOptionInDropdown="{ color: 'blue' }"
                :caseSensitivity="false"
-               :searchValue="search"
+               :searchValue="''"
                @searchChange="searchChange"
                @open="open"
                @close="close"
@@ -33,7 +32,13 @@
                @focusEl="focusEl"
                @blurEl="blurEl"
                @focus="focus"
-               @blur="blur">
+               @blur="blur"
+               :required="true"
+               url="https://api.github.com/search/repositories?q="
+               :pageSize="15"
+               :debounce="2000"
+               :successCallback="successCallback"
+               :errorCallback="errorCallback">
   
       <template slot="noResult"
                 scope="props">
@@ -44,6 +49,15 @@
                 scope="props">
         <span class="deleteIcon">×</span>
       </template>
+  
+      <div slot="loading"
+           class="spinner">
+        <div class="rect1"></div>
+        <div class="rect2"></div>
+        <div class="rect3"></div>
+        <div class="rect4"></div>
+        <div class="rect5"></div>
+      </div>
   
       <template slot="resetButton"
                 scope="props">
@@ -95,9 +109,31 @@ export default {
     return {
       search: 'one',
       selectedOptions: [],
+      options: [],
     };
   },
+  mounted() {
+    this.options = this.groups;
+  },
   methods: {
+    tag(searchText) {
+      global.console.log('tag', searchText);
+      this.selectedOptions.push({ id: 'fromParrentTagFunction', name: 'fromParrentTagFunction' });
+    },
+    successCallback(data) {
+      // const options = data;
+      const options = data.items
+        ? data.items.map(object => ({ id: object.id, name: object.full_name }))
+        : [];
+      const group = {
+        name: 'From Api',
+        values: options,
+      };
+      this.options = [group];
+    },
+    errorCallback(error) {
+      global.window.alert('parentErrorCallback', error.status);
+    },
     searchChange(newValue, oldValue) {
       global.console.log('searchChange', `${oldValue} => ${newValue}`);
     },
@@ -157,5 +193,84 @@ div.main {
 
 .deleteIcon {
   color: red;
+}
+
+.markedSymbol {
+  display: inline-block;
+  animation: wiggle 1.5s infinite;
+  margin: 0 1px;
+  color: black;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(55deg);
+  }
+  50% {
+    transform: rotate(-50deg);
+  }
+}
+
+.spinner {
+  margin: 100px auto;
+  width: 50px;
+  height: 40px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.spinner>div {
+  background-color: #333;
+  height: 100%;
+  width: 6px;
+  display: inline-block;
+
+  -webkit-animation: sk-stretchdelay 1.2s infinite ease-in-out;
+  animation: sk-stretchdelay 1.2s infinite ease-in-out;
+}
+
+.spinner .rect2 {
+  -webkit-animation-delay: -1.1s;
+  animation-delay: -1.1s;
+}
+
+.spinner .rect3 {
+  -webkit-animation-delay: -1.0s;
+  animation-delay: -1.0s;
+}
+
+.spinner .rect4 {
+  -webkit-animation-delay: -0.9s;
+  animation-delay: -0.9s;
+}
+
+.spinner .rect5 {
+  -webkit-animation-delay: -0.8s;
+  animation-delay: -0.8s;
+}
+
+@-webkit-keyframes sk-stretchdelay {
+  0%,
+  40%,
+  100% {
+    -webkit-transform: scaleY(0.4)
+  }
+  20% {
+    -webkit-transform: scaleY(1.0)
+  }
+}
+
+@keyframes sk-stretchdelay {
+  0%,
+  40%,
+  100% {
+    transform: scaleY(0.4);
+    -webkit-transform: scaleY(0.4);
+  }
+  20% {
+    transform: scaleY(1.0);
+    -webkit-transform: scaleY(1.0);
+  }
 }
 </style>

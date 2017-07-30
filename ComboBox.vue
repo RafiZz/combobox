@@ -1,11 +1,11 @@
 <template>
   <div ref="combobox"
-       @mousedown.prevent.stop="toggleDropdown"
+       @mousedown.prevent="toggleDropdown"
        class="combobox"
        :style="{'width': width}">
   
     <div class="display">
-      <template v-if="multiple && !resetAfter">
+      <template v-if="multiple">
         <div class="tag"
              v-for="(option, i) in selectedOptions"
              :key="i">
@@ -29,9 +29,31 @@
              @blur="blur"
              @focus="focus"
              :placeholder="currentPlaceholder"
+             :class="{darkenPlaceholder: !multiple && selectedOptions.length}"
              :readonly="readonly">
   
-      <template v-if="!search && !multiple && selectedOptions.length">
+      <div v-if="isLoading"
+           class="loading">
+        <div v-if="!$slots.loading"
+             class="sk-fading-circle">
+          <div class="sk-circle1 sk-circle"></div>
+          <div class="sk-circle2 sk-circle"></div>
+          <div class="sk-circle3 sk-circle"></div>
+          <div class="sk-circle4 sk-circle"></div>
+          <div class="sk-circle5 sk-circle"></div>
+          <div class="sk-circle6 sk-circle"></div>
+          <div class="sk-circle7 sk-circle"></div>
+          <div class="sk-circle8 sk-circle"></div>
+          <div class="sk-circle9 sk-circle"></div>
+          <div class="sk-circle10 sk-circle"></div>
+          <div class="sk-circle11 sk-circle"></div>
+          <div class="sk-circle12 sk-circle"></div>
+        </div>
+        <slot v-else
+              name="loading" />
+      </div>
+  
+      <template v-if="!search && !multiple && selectedOptions.length && !required">
         <span @mousedown.prevent.stop="deselect()"
               class="delete-button">
           <slot name="resetButton"></slot>
@@ -48,7 +70,7 @@
       <li v-if="$scopedSlots.firstOption"
           :class="{ highlight: typeAheadPointer === 'first' }"
           @mouseover="typeAheadPointer = 'first'"
-          @mousedown.prevent.stop="tag">
+          @mousedown.prevent.stop="typeAheadEnter">
         <slot name="firstOption"
               :text="search"></slot>
       </li>
@@ -56,7 +78,7 @@
       <li v-if="noResult"
           :class="{ highlight: typeAheadPointer === 'noResult' }"
           @mouseover="typeAheadPointer = 'noResult'"
-          @mousedown.prevent.stop="tag">
+          @mousedown.prevent.stop="typeAheadEnter">
         <slot name="noResult"
               :text="search"></slot>
         <span v-if="$scopedSlots.noResult">No result.</span>
@@ -110,7 +132,7 @@
       <li v-if="$scopedSlots.lastOption"
           :class="{ highlight: typeAheadPointer === 'last' }"
           @mouseover="typeAheadPointer = 'last'"
-          @mousedown.prevent.stop="tag">
+          @mousedown.prevent.stop="typeAheadEnter">
         <slot name="lastOption"
               :text="search"></slot>
       </li>
@@ -137,7 +159,7 @@ const markedText = {
         for (let i = 0; i < middle.length; i += 1) {
           array.push(this.markedSymbolSlot
             ? this.markedSymbolSlot({ text: middle[i] })
-            : createElement('b', { class: 'markedSymbol' }, middle[i]));
+            : createElement('b', middle[i]));
         }
         if (end) array.push(end);
       } else {
@@ -174,6 +196,19 @@ const markedText = {
     },
   },
 };
+
+function throttle(callback, limit) {
+  let wait = false;
+  return () => {
+    if (!wait) {
+      wait = true;
+      setTimeout(() => {
+        wait = false;
+        callback();
+      }, limit);
+    }
+  }
+}
 
 export default {
   name: 'ComboBox',
@@ -243,10 +278,6 @@ export default {
       type: Boolean,
       default: false
     },
-    taggable: {
-      type: Boolean,
-      default: true
-    },
     multiple: {
       type: Boolean,
       default: true
@@ -275,6 +306,71 @@ export default {
       type: Boolean,
       default: false
     },
+    tag: {
+      type: Function,
+      default(searchText) {
+        // if (!this.searchable || this.readonly || !searchText) {
+        //   this.readonly = false;
+        //   this.$refs.search.focus();
+        //   return;
+        // }
+        // this.readonly = !this.searchable;
+
+        if (!searchText) return;
+
+        let option = searchText;
+        if (this.isObjects()) {
+          option = {};
+          option[this.optionLabel] = searchText;
+          option[this.optionValue] = searchText;
+        }
+        if (this.repeatable || (!this.newOptions.indexOf(option) > -1)) {
+          this.newOptions.push(option);
+          if (this.multiple) {
+            this.currentSelectedOptions.push(option);
+          } else {
+            this.currentSelectedOptions = [option];
+          }
+        }
+        this.search = '';
+      }
+    },
+    required: {
+      type: Boolean,
+      default: false
+    },
+    url: {
+      type: String,
+      default: ''
+    },
+    pageSize: {
+      type: Number,
+      default: 100
+    },
+    debounce: {
+      type: Number,
+      default: 2000
+    },
+    successCallback: {
+      type: Function,
+      default(objects) {
+        global.console.log('successCallback', objects);
+        let options = objects;
+        if (this.isGroup()) {
+          const group = {};
+          options[this.groupLabel] = this.page;
+          options[this.groupValues] = objects;
+          options = [group];
+        }
+        this.currentOptions = options;
+      }
+    },
+    errorCallback: {
+      type: Function,
+      default(error) {
+        global.console.error('errorCallback', error.status, error.statusText);
+      }
+    },
   },
   data() {
     return {
@@ -286,9 +382,15 @@ export default {
       currentSelectedOptions: this.selectedOptions,
       typeAheadPointer: '',
       height: this.initOpen ? this.maxHeight : 0,
+      isLoading: false,
+      page: 1,
+      currentOptions: this.options || [],
     }
   },
   computed: {
+    throttledApiCall() {
+      return throttle(this.getOptionsFromApi, this.debounce);
+    },
     currentPlaceholder() {
       let placeholder = this.placeholder;
       if (this.currentSelectedOptions.length && !this.multiple) {
@@ -310,7 +412,7 @@ export default {
         newGroup[this.groupValues] = this.newOptions;
         newOptions = [newGroup];
       }
-      return this.options.concat(newOptions);
+      return this.currentOptions.concat(newOptions);
     },
     typeAheadPointerValues() {
       const values = [];
@@ -374,6 +476,10 @@ export default {
     searchValue() {
       this.search = this.searchable ? this.searchValue : '';
     },
+    options() {
+      this.typeAheadPointer = '';
+      this.currentOptions = this.options;
+    },
     search(newValue, oldValue) {
       if (this.searchable) {
         this.typeAheadPointer = this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
@@ -381,7 +487,12 @@ export default {
       if (newValue.length > oldValue.length) {
         this.open = true;
       }
+
       this.$emit('searchChange', newValue, oldValue);
+
+      if (this.url) {
+        this.throttledApiCall();
+      }
     },
     currentSelectedOptions(newValue) {
       this.$emit('update:selectedOptions', newValue);
@@ -393,6 +504,9 @@ export default {
       }
     },
     open(newValue) {
+      if (!newValue) {
+        this.$refs.search.blur();
+      }
       this.$emit(newValue ? 'open' : 'close');
     },
     typeAheadPointer(newValue, oldValue) {
@@ -407,7 +521,40 @@ export default {
       }
     },
   },
+  mounted() {
+    if (this.initOpen && this.$refs.search) {
+      this.$refs.search.focus();
+    }
+  },
   methods: {
+    getOptionsFromApi() {
+      if (this.isLoading) return;
+      this.isLoading = true;
+      // const props = {
+      //   url: this.url,
+      //   method: 'GET',
+      //   params: {
+      //     url: this.url,
+      //     pageSize: this.pageSize,
+      //     page: this.page,
+      //     filter: this.search
+      //   }
+      // }
+      // this.$http(props)
+      window.fetch(this.url + this.search)
+        .then(response => {
+          if (response.ok) {
+            response.json().then(data => {
+              this.$props.successCallback(data);
+            })
+          }
+          this.isLoading = false;
+        })
+        .catch(error => {
+          this.$props.errorCallback(error);
+          this.isLoading = false;
+        });
+    },
     getOptionByPointer(pointer) {
       const pointers = [undefined, 'first', 'noResult', 'last', ''];
       let option;
@@ -436,10 +583,12 @@ export default {
     getGroupLabel(group) {
       return group && Object.prototype.hasOwnProperty.call(group, this.groupLabel)
         && group[this.groupLabel];
+      // return this.isGroups() && group && group[this.groupLabel];
     },
     getGroupValues(group) {
       return group && Object.prototype.hasOwnProperty.call(group, this.groupValues)
         && group[this.groupValues];
+      // return this.isGroups() && group && group[this.groupValues];
     },
     includeSearchString(string) {
       if (this.caseSensitivity) {
@@ -469,11 +618,12 @@ export default {
         this.selectedOptions.some(selectedOption => this.getOptionValue(selectedOption) === this.getOptionValue(option));
     },
     toggleDropdown() {
-      if (this.open) {
-        this.$refs.search.focus();
-      } else {
-        this.computePosition();
-      }
+      if (!this.open) this.computePosition();
+
+      const focused = this.$refs.search === document.activeElement;
+      this.$refs.search.focus();
+      if (this.open && !focused) return;
+
       this.open = !this.open;
     },
     computePosition() {
@@ -530,7 +680,7 @@ export default {
       this.scrollTo(type);
     },
     select(pointer) {
-      const option = this.getOptionByPointer(pointer || this.typeAheadPointer);
+      const option = this.getOptionByPointer(pointer || pointer === 0 ? pointer : this.typeAheadPointer);
       let canBeSelected = true;
 
       if (!this.repeatable) {
@@ -543,55 +693,33 @@ export default {
       if (canBeSelected) {
         this.$emit('select', option);
         this.typeAheadPointer = '';
+        this.search = '';
+        this.readonly = !this.searchable;
+
+        if (this.resetAfter) return;
+
         if (this.multiple) {
           this.currentSelectedOptions.push(option);
-          this.search = '';
-          this.readonly = !this.searchable;
         } else {
           this.currentSelectedOptions = [option];
         }
       }
     },
     deselect(index) {
+      if (this.required && this.currentSelectedOptions.length === 1) return;
       this.currentSelectedOptions.splice(index, 1);
-    },
-    tag() {
-      if (!this.searchable || this.readonly || !this.search) {
-        this.readonly = false;
-        this.$refs.search.focus();
-        return;
-      }
-      this.readonly = !this.searchable;
-      let option = this.search;
-      if (this.isObjects()) {
-        option = {};
-        option[this.optionLabel] = this.search;
-        option[this.optionValue] = this.search;
-      }
-      if (this.repeatable || (!this.newOptions.indexOf(option) > -1)) {
-        this.newOptions.push(option);
-        if (this.multiple) {
-          this.currentSelectedOptions.push(option)
-        } else {
-          this.currentSelectedOptions = [option];
-        }
-      }
-      this.search = '';
     },
     typeAheadEnter() {
       const forTagPointers = ['first', 'noResult', 'last'];
-      const pointer = this.typeAheadPointer && this.typeAheadPointer !== 0
-        ? this.typeAheadPointer
-        : this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
-      if (forTagPointers.indexOf(pointer) === -1) {
-        this.select(pointer);
+      const pointer = this.typeAheadPointer || this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
+
+      if (forTagPointers.indexOf(pointer) > -1) {
+        this.tag(this.search);
       } else {
-        this.tag();
+        this.select(pointer);
       }
     },
     typeAheadDeselect() {
-      global.console.log(!this.search.length)
-      global.console.log(this.currentSelectedOptions.length)
       if (!this.search.length && this.currentSelectedOptions.length) {
         this.deselect(this.currentSelectedOptions.length - 1);
       }
@@ -602,6 +730,7 @@ export default {
       }
     },
     focus() {
+      this.open = true;
       this.$emit('focus');
     },
     blur() {
@@ -623,7 +752,7 @@ export default {
 
 .combobox {
   display: inline-block;
-  min-height: 40px;
+  min-height: 36px;
   position: relative;
 }
 
@@ -661,7 +790,20 @@ export default {
   cursor: pointer;
 }
 
-.combobox .display input[type="search"] {
+
+.combobox .display input[type="search"]::-webkit-search-decoration,
+.combobox .display input[type="search"]::-webkit-search-cancel-button,
+.combobox .display input[type="search"]::-webkit-search-results-button,
+.combobox .display input[type="search"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+.combobox .display input[type="search"]::-ms-clear {
+  display: none;
+}
+
+.combobox .display input[type="search"],
+.combobox .display input[type="search"]:focus {
   max-width: 100%;
   appearance: none;
   -webkit-appearance: none;
@@ -679,13 +821,30 @@ export default {
   clear: none;
 }
 
-.combobox .display .delete-button {
+.combobox .display input[type="search"].darkenPlaceholder::-webkit-input-placeholder {
+  color: initial;
+}
+
+.combobox .display input[type="search"].darkenPlaceholder::-moz-placeholder {
+  color: initial;
+}
+
+.combobox .display input[type="search"].darkenPlaceholder:-moz-placeholder {
+  color: initial;
+}
+
+.combobox .display input[type="search"].darkenPlaceholder:-ms-input-placeholder {
+  color: initial;
+}
+
+
+.combobox .display>.delete-button {
   position: absolute;
   top: 0;
   bottom: 0;
   right: 5px;
+  margin-right: 5px;
   flex-grow: 1;
-  margin-right: 10px;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -717,19 +876,181 @@ export default {
   color: #fff;
 }
 
-.markedSymbol {
-  display: inline-block;
-  animation: wiggle 1.5s infinite;
-  margin: 0 1px;
+.loading {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 5px;
+  display: flex;
+  align-items: center;
 }
 
-@keyframes wiggle {
+.sk-fading-circle {
+  width: 25px;
+  height: 25px;
+  position: relative;
+}
+
+.sk-fading-circle .sk-circle {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.sk-fading-circle .sk-circle:before {
+  content: '';
+  display: block;
+  margin: 0 auto;
+  width: 15%;
+  height: 15%;
+  background-color: #333;
+  border-radius: 100%;
+  -webkit-animation: sk-circleFadeDelay 1.2s infinite ease-in-out both;
+  animation: sk-circleFadeDelay 1.2s infinite ease-in-out both;
+}
+
+.sk-fading-circle .sk-circle2 {
+  -webkit-transform: rotate(30deg);
+  -ms-transform: rotate(30deg);
+  transform: rotate(30deg);
+}
+
+.sk-fading-circle .sk-circle3 {
+  -webkit-transform: rotate(60deg);
+  -ms-transform: rotate(60deg);
+  transform: rotate(60deg);
+}
+
+.sk-fading-circle .sk-circle4 {
+  -webkit-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+
+.sk-fading-circle .sk-circle5 {
+  -webkit-transform: rotate(120deg);
+  -ms-transform: rotate(120deg);
+  transform: rotate(120deg);
+}
+
+.sk-fading-circle .sk-circle6 {
+  -webkit-transform: rotate(150deg);
+  -ms-transform: rotate(150deg);
+  transform: rotate(150deg);
+}
+
+.sk-fading-circle .sk-circle7 {
+  -webkit-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+
+.sk-fading-circle .sk-circle8 {
+  -webkit-transform: rotate(210deg);
+  -ms-transform: rotate(210deg);
+  transform: rotate(210deg);
+}
+
+.sk-fading-circle .sk-circle9 {
+  -webkit-transform: rotate(240deg);
+  -ms-transform: rotate(240deg);
+  transform: rotate(240deg);
+}
+
+.sk-fading-circle .sk-circle10 {
+  -webkit-transform: rotate(270deg);
+  -ms-transform: rotate(270deg);
+  transform: rotate(270deg);
+}
+
+.sk-fading-circle .sk-circle11 {
+  -webkit-transform: rotate(300deg);
+  -ms-transform: rotate(300deg);
+  transform: rotate(300deg);
+}
+
+.sk-fading-circle .sk-circle12 {
+  -webkit-transform: rotate(330deg);
+  -ms-transform: rotate(330deg);
+  transform: rotate(330deg);
+}
+
+.sk-fading-circle .sk-circle2:before {
+  -webkit-animation-delay: -1.1s;
+  animation-delay: -1.1s;
+}
+
+.sk-fading-circle .sk-circle3:before {
+  -webkit-animation-delay: -1s;
+  animation-delay: -1s;
+}
+
+.sk-fading-circle .sk-circle4:before {
+  -webkit-animation-delay: -0.9s;
+  animation-delay: -0.9s;
+}
+
+.sk-fading-circle .sk-circle5:before {
+  -webkit-animation-delay: -0.8s;
+  animation-delay: -0.8s;
+}
+
+.sk-fading-circle .sk-circle6:before {
+  -webkit-animation-delay: -0.7s;
+  animation-delay: -0.7s;
+}
+
+.sk-fading-circle .sk-circle7:before {
+  -webkit-animation-delay: -0.6s;
+  animation-delay: -0.6s;
+}
+
+.sk-fading-circle .sk-circle8:before {
+  -webkit-animation-delay: -0.5s;
+  animation-delay: -0.5s;
+}
+
+.sk-fading-circle .sk-circle9:before {
+  -webkit-animation-delay: -0.4s;
+  animation-delay: -0.4s;
+}
+
+.sk-fading-circle .sk-circle10:before {
+  -webkit-animation-delay: -0.3s;
+  animation-delay: -0.3s;
+}
+
+.sk-fading-circle .sk-circle11:before {
+  -webkit-animation-delay: -0.2s;
+  animation-delay: -0.2s;
+}
+
+.sk-fading-circle .sk-circle12:before {
+  -webkit-animation-delay: -0.1s;
+  animation-delay: -0.1s;
+}
+
+@-webkit-keyframes sk-circleFadeDelay {
   0%,
+  39%,
   100% {
-    transform: rotate(55deg);
+    opacity: 0;
   }
-  50% {
-    transform: rotate(-50deg);
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes sk-circleFadeDelay {
+  0%,
+  39%,
+  100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
   }
 }
 </style>
