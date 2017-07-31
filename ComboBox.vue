@@ -543,6 +543,7 @@ export default {
   },
   methods: {
     onScroll(e) {
+      if (!this.url) return;
       const { scrollHeight, scrollTop, clientHeight } = e.target;
       if (scrollHeight - scrollTop === clientHeight) {
         this.page += 1;
