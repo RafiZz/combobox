@@ -380,6 +380,10 @@ export default {
       type: Boolean,
       default: false
     },
+    internalSearch: {
+      type: Boolean,
+      default: true
+    },
   },
   data() {
     return {
@@ -617,6 +621,10 @@ export default {
     },
     showOption(option) {
       let show = true;
+
+      if (!this.internalSearch) {
+        return show;
+      }
 
       if (this.hideSelected && !this.readonly) {
         show = !this.selectedOptions.some(selectedOption => this.getOptionValue(selectedOption) === this.getOptionValue(option))

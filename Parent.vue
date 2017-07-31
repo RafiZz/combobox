@@ -19,7 +19,7 @@
                :repeatable="false"
                placeholder="Выберите товар"
                width="400px"
-               :maxHeight="100"
+               :maxHeight="200"
                :transitionSpeed="{ enter: 1000, leave: 1500 }"
                position="bottom"
                :styleSelectOptionInDropdown="{ color: 'blue' }"
@@ -39,7 +39,8 @@
                :debounce="2000"
                :successCallback="successCallback"
                :errorCallback="errorCallback"
-               :showNoResult="false">
+               :showNoResult="false"
+               :internalSearch="false">
   
       <template slot="noResult"
                 scope="props">
