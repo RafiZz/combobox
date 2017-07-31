@@ -222,7 +222,7 @@ export default {
   props: {
     options: {
       type: Array,
-      required: true,
+      default: () => []
     },
     selectedOptions: {
       type: Array,
@@ -355,20 +355,15 @@ export default {
     },
     successCallback: {
       type: Function,
-      default(objects, page) {
-        global.console.log('successCallback', objects, page);
+      default(objects) {
         let options = objects;
         if (this.isGroup()) {
           const group = {};
-          options[this.groupLabel] = page;
+          options[this.groupLabel] = `Page ${this.page}`;
           options[this.groupValues] = objects;
           options = [group];
         }
-        if (page === 1) {
-          this.currentOptions = options;
-        } else {
-          this.currentOptions.push(options);
-        }
+        return options;
       }
     },
     errorCallback: {
@@ -404,9 +399,9 @@ export default {
       currentSelectedOptions: this.selectedOptions,
       typeAheadPointer: '',
       height: this.initOpen ? this.maxHeight : 0,
+      currentOptions: this.options,
       isLoading: false,
       page: 1,
-      currentOptions: this.options || [],
     }
   },
   computed: {
@@ -558,8 +553,11 @@ export default {
   methods: {
     onScroll(e) {
       if (!this.url) return;
+
       const { scrollHeight, scrollTop, clientHeight } = e.target;
-      if (scrollHeight - scrollTop === clientHeight) {
+      const scrollEnd = scrollHeight - scrollTop === clientHeight;
+
+      if (scrollEnd) {
         this.page += 1;
         e.target.scrollTop += 1;
         this.throttledApiCall();
@@ -579,13 +577,15 @@ export default {
       }
       this.$http(props)
         .then(response => {
-          if (response.data) {
-            this.$props.successCallback(response.data, props.params.page);
+          if (this.page > 1) {
+            this.currentOptions = this.currentOptions.concat(this.successCallback(response));
+          } else {
+            this.currentOptions = this.successCallback(response);
           }
           this.isLoading = false;
         })
         .catch(error => {
-          this.$props.errorCallback(error);
+          this.errorCallback(error);
           this.isLoading = false;
         });
     },

@@ -4,14 +4,13 @@
            v-model="search">
   
     <combo-box v-model="selectedOptions"
-               :options="options"
                groupLabel="name"
                groupValues="values"
                optionLabel="name"
                optionValue="id"
                :initOpen="true"
                :closeOnSelect="false"
-               :closeOnBlur="true"
+               :closeOnBlur="false"
                :hideSelected="true"
                :resetAfter="false"
                :searchable="true"
@@ -76,7 +75,7 @@
   
       <template slot="groupLabel"
                 scope="props">
-        <div style="border-top: 1px solid black; text-align: center;">{{ props.text }}</div>
+        <div style="border-bottom: 1px solid black; text-align: center;">{{ props.text }}</div>
       </template>
   
       <template slot="firstOption"
@@ -114,34 +113,32 @@ export default {
     return {
       search: '',
       selectedOptions: [],
-      options: [],
+      // options: [],
     };
   },
   mounted() {
     this.options = this.groups;
+    global.console.log(this);
   },
   methods: {
     tag(searchText) {
       global.console.log('tag', searchText);
       this.selectedOptions.push({ id: searchText, name: `${searchText} from parrent` });
     },
-    successCallback(data, page) {
-      // const options = data;
-      const options = data
-        ? data.map(object => ({ id: object.id, name: object.title }))
+    successCallback(response) {
+      global.console.log('successCallback', response);
+      const options = response.data
+        ? response.data.map(object => ({ id: object.id, name: object.title }))
         : [];
       const group = {
-        name: `From Api ${page}`,
+        name: 'From Api',
         values: options,
       };
-      if (page === 1) {
-        this.options = [group];
-      } else {
-        this.options.push(group);
-      }
+
+      return [group];
     },
     errorCallback(error) {
-      global.window.alert('parentErrorCallback', error.status);
+      global.console.error('errorCallback', error);
     },
     searchChange(newValue, oldValue) {
       global.console.log('searchChange', `${oldValue} => ${newValue}`);
