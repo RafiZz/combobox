@@ -68,7 +68,7 @@
         @scroll="onScroll"
         :style="dropdownStyles">
   
-      <li v-if="$scopedSlots.firstOption"
+      <li v-if="$scopedSlots.firstOption && showFirstOption"
           :class="{ highlight: typeAheadPointer === 'first' }"
           @mouseover="typeAheadPointer = 'first'"
           @mousedown.prevent.stop="typeAheadEnter">
@@ -122,6 +122,7 @@
             @mouseover="typeAheadPointer = x"
             @mousedown.prevent.stop="select(x)"
             :style="isSelected(option) && styleSelectOptionInDropdown">
+  
           <marked-text :originalSlot="isSelected(option) ? $scopedSlots.selectedOptions : $scopedSlots.allOptions"
                        :markedSymbolSlot="$scopedSlots.markedSymbol"
                        :text="getOptionLabel(option)"
@@ -130,7 +131,7 @@
         </li>
       </template>
   
-      <li v-if="$scopedSlots.lastOption"
+      <li v-if="$scopedSlots.lastOption && showLastOption"
           :class="{ highlight: typeAheadPointer === 'last' }"
           @mouseover="typeAheadPointer = 'last'"
           @mousedown.prevent.stop="typeAheadEnter">
@@ -380,6 +381,14 @@ export default {
       type: Boolean,
       default: false
     },
+    showFirstOption: {
+      type: Boolean,
+      default: false
+    },
+    showLastOption: {
+      type: Boolean,
+      default: false
+    },
     internalSearch: {
       type: Boolean,
       default: true
@@ -558,19 +567,15 @@ export default {
         url: this.url,
         method: 'GET',
         params: {
-          url: this.url,
           pageSize: this.pageSize,
           page: this.page,
           filter: this.search
         }
       }
-      // this.$http(props)
-      window.fetch(this.url + this.search)
+      this.$http(props)
         .then(response => {
-          if (response.ok) {
-            response.json().then(data => {
-              this.$props.successCallback(data, props.params.page);
-            })
+          if (response.data) {
+            this.$props.successCallback(response.data, props.params.page);
           }
           this.isLoading = false;
         })

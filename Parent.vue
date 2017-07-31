@@ -34,12 +34,14 @@
                @focus="focus"
                @blur="blur"
                :required="true"
-               url="https://api.github.com/search/repositories?q="
+               url="https://jsonplaceholder.typicode.com/posts"
                :pageSize="15"
                :debounce="2000"
                :successCallback="successCallback"
                :errorCallback="errorCallback"
                :showNoResult="false"
+               :showFirstOption="false"
+               :showLastOption="false"
                :internalSearch="false"
                :tag="tag">
   
@@ -125,8 +127,8 @@ export default {
     },
     successCallback(data, page) {
       // const options = data;
-      const options = data.items
-        ? data.items.map(object => ({ id: object.id, name: object.full_name }))
+      const options = data
+        ? data.map(object => ({ id: object.id, name: object.title }))
         : [];
       const group = {
         name: `From Api ${page}`,
