@@ -906,7 +906,7 @@ export default {
 
 .loading {
   position: absolute;
-  top: 0;
+  height: 36px;
   bottom: 0;
   right: 5px;
   display: flex;

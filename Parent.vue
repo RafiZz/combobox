@@ -40,7 +40,8 @@
                :successCallback="successCallback"
                :errorCallback="errorCallback"
                :showNoResult="false"
-               :internalSearch="false">
+               :internalSearch="false"
+               :tag="tag">
   
       <template slot="noResult"
                 scope="props">
@@ -120,7 +121,7 @@ export default {
   methods: {
     tag(searchText) {
       global.console.log('tag', searchText);
-      this.selectedOptions.push({ id: 'fromParrentTagFunction', name: 'fromParrentTagFunction' });
+      this.selectedOptions.push({ id: searchText, name: `${searchText} from parrent` });
     },
     successCallback(data, page) {
       // const options = data;
