@@ -65,6 +65,7 @@
     <ul class="dropdown"
         ref="dropdown"
         @mousedown.prevent.stop
+        @scroll="onScroll"
         :style="dropdownStyles">
   
       <li v-if="$scopedSlots.firstOption"
@@ -75,7 +76,7 @@
               :text="search"></slot>
       </li>
   
-      <li v-if="noResult"
+      <li v-if="noResult && showNoResult"
           :class="{ highlight: typeAheadPointer === 'noResult' }"
           @mouseover="typeAheadPointer = 'noResult'"
           @mousedown.prevent.stop="typeAheadEnter">
@@ -353,16 +354,20 @@ export default {
     },
     successCallback: {
       type: Function,
-      default(objects) {
-        global.console.log('successCallback', objects);
+      default(objects, page) {
+        global.console.log('successCallback', objects, page);
         let options = objects;
         if (this.isGroup()) {
           const group = {};
-          options[this.groupLabel] = this.page;
+          options[this.groupLabel] = page;
           options[this.groupValues] = objects;
           options = [group];
         }
-        this.currentOptions = options;
+        if (page === 1) {
+          this.currentOptions = options;
+        } else {
+          this.currentOptions.push(options);
+        }
       }
     },
     errorCallback: {
@@ -370,6 +375,10 @@ export default {
       default(error) {
         global.console.error('errorCallback', error.status, error.statusText);
       }
+    },
+    showNoResult: {
+      type: Boolean,
+      default: false
     },
   },
   data() {
@@ -491,7 +500,9 @@ export default {
       this.$emit('searchChange', newValue, oldValue);
 
       if (this.url) {
+        this.page = 1;
         this.throttledApiCall();
+        this.$refs.dropdown.scrollTop = 0;
       }
     },
     currentSelectedOptions(newValue) {
@@ -527,25 +538,33 @@ export default {
     }
   },
   methods: {
+    onScroll(e) {
+      const { scrollHeight, scrollTop, clientHeight } = e.target;
+      if (scrollHeight - scrollTop === clientHeight) {
+        this.page += 1;
+        e.target.scrollTop += 1;
+        this.throttledApiCall();
+      };
+    },
     getOptionsFromApi() {
       if (this.isLoading) return;
       this.isLoading = true;
-      // const props = {
-      //   url: this.url,
-      //   method: 'GET',
-      //   params: {
-      //     url: this.url,
-      //     pageSize: this.pageSize,
-      //     page: this.page,
-      //     filter: this.search
-      //   }
-      // }
+      const props = {
+        url: this.url,
+        method: 'GET',
+        params: {
+          url: this.url,
+          pageSize: this.pageSize,
+          page: this.page,
+          filter: this.search
+        }
+      }
       // this.$http(props)
       window.fetch(this.url + this.search)
         .then(response => {
           if (response.ok) {
             response.json().then(data => {
-              this.$props.successCallback(data);
+              this.$props.successCallback(data, props.params.page);
             })
           }
           this.isLoading = false;

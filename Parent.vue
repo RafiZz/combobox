@@ -19,7 +19,7 @@
                :repeatable="false"
                placeholder="Выберите товар"
                width="400px"
-               :maxHeight="500"
+               :maxHeight="100"
                :transitionSpeed="{ enter: 1000, leave: 1500 }"
                position="bottom"
                :styleSelectOptionInDropdown="{ color: 'blue' }"
@@ -38,7 +38,8 @@
                :pageSize="15"
                :debounce="2000"
                :successCallback="successCallback"
-               :errorCallback="errorCallback">
+               :errorCallback="errorCallback"
+               :showNoResult="false">
   
       <template slot="noResult"
                 scope="props">
@@ -120,16 +121,20 @@ export default {
       global.console.log('tag', searchText);
       this.selectedOptions.push({ id: 'fromParrentTagFunction', name: 'fromParrentTagFunction' });
     },
-    successCallback(data) {
+    successCallback(data, page) {
       // const options = data;
       const options = data.items
         ? data.items.map(object => ({ id: object.id, name: object.full_name }))
         : [];
       const group = {
-        name: 'From Api',
+        name: `From Api ${page}`,
         values: options,
       };
-      this.options = [group];
+      if (page === 1) {
+        this.options = [group];
+      } else {
+        this.options.push(group);
+      }
     },
     errorCallback(error) {
       global.window.alert('parentErrorCallback', error.status);
