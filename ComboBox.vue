@@ -549,6 +549,11 @@ export default {
     if (this.initOpen && this.$refs.search) {
       this.$refs.search.focus();
     }
+    if (this.url) {
+      this.page = 1;
+      this.throttledApiCall();
+      this.$refs.dropdown.scrollTop = 0;
+    }
   },
   methods: {
     onScroll(e) {
