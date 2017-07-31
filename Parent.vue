@@ -24,7 +24,7 @@
                position="bottom"
                :styleSelectOptionInDropdown="{ color: 'blue' }"
                :caseSensitivity="false"
-               :searchValue="''"
+               :searchValue="search"
                @searchChange="searchChange"
                @open="open"
                @close="close"
@@ -109,7 +109,7 @@ export default {
   name: 'hello',
   data() {
     return {
-      search: 'one',
+      search: '',
       selectedOptions: [],
       options: [],
     };
