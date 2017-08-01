@@ -437,17 +437,17 @@ export default {
         )
       }
 
-      if (!values.length) {
+      if (!values.length && this.showNoResult) {
         values.push('noResult');
       }
 
-      if (this.$scopedSlots.firstOption) values.unshift('first');
-      if (this.$scopedSlots.lastOption) values.push('last');
+      if (this.$scopedSlots.firstOption && this.showFirstOption) values.unshift('first');
+      if (this.$scopedSlots.lastOption && this.showLastOption) values.push('last');
 
       return values;
     },
     noResult() {
-      const noResultPointerIndex = this.$scopedSlots.firstOption ? 1 : 0;
+      const noResultPointerIndex = +(this.$scopedSlots.firstOption && this.showFirstOption);
       const pointer = this.typeAheadPointerValues && this.typeAheadPointerValues[noResultPointerIndex];
       if (pointer === 'noResult') {
         this.typeAheadPointer = this.typeAheadPointerValues[noResultPointerIndex];
@@ -492,7 +492,7 @@ export default {
     },
     search(newValue, oldValue) {
       if (this.searchable) {
-        this.typeAheadPointer = this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
+        this.typeAheadPointer = this.typeAheadPointerValues[+(this.$scopedSlots.firstOption && this.showFirstOption)];
       }
       if (newValue.length > oldValue.length) {
         this.open = true;
@@ -670,12 +670,13 @@ export default {
       const isFitBottom = this.maxHeight < distanceToBottom;
       const isFitTop = this.maxHeight < distanceToTop;
 
-      if (!isFitBottom && distanceToTop > distanceToBottom) {
+      if (!isFitBottom && (distanceToTop > distanceToBottom) && (distanceToTop > 50)) {
         this.currentPosition = 'top';
         this.height = Math.min(this.maxHeight, distanceToTop, dropdownNeededHeight);
       } else if (!isFitTop && distanceToBottom > distanceToTop) {
         this.currentPosition = 'bottom';
-        this.height = Math.min(this.maxHeight, distanceToBottom, dropdownNeededHeight);
+        this.height = Math.min(this.maxHeight, dropdownNeededHeight);
+        if (distanceToBottom > 50) this.height = Math.min(distanceToBottom, this.height)
       } else {
         this.currentPosition = this.position;
         this.height = this.maxHeight;
@@ -687,7 +688,7 @@ export default {
     },
     changeTypeAheadPointer(type) {
       if (!this.typeAheadPointer && this.typeAheadPointer !== 0) {
-        this.typeAheadPointer = this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
+        this.typeAheadPointer = this.typeAheadPointerValues[+(this.$scopedSlots.firstOption && this.showFirstOption)];
         return;
       }
 
@@ -740,11 +741,12 @@ export default {
     },
     typeAheadEnter() {
       const forTagPointers = ['first', 'noResult', 'last'];
-      const pointer = this.typeAheadPointer || this.typeAheadPointerValues[this.$scopedSlots.firstOption ? 1 : 0];
+      const pointer = this.typeAheadPointer || this.typeAheadPointerValues[+(this.$scopedSlots.firstOption && this.showFirstOption)];
 
       if (forTagPointers.indexOf(pointer) > -1) {
         this.tag(this.search);
       } else {
+        if (!pointer) return;
         this.select(pointer);
       }
     },
