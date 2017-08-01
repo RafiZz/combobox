@@ -801,8 +801,8 @@ export default {
   background-color: #41B783;
   border: 1px solid #ccc;
   border-radius: 4px;
-  height: 26px;
-  margin: 4px 1px 0px 3px;
+  min-height: 26px;
+  margin: 1px 2px;
   padding: 1px 0.25em;
   padding-right: 20px;
   line-height: 24px;
