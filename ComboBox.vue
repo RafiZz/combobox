@@ -311,13 +311,6 @@ export default {
     tag: {
       type: Function,
       default(searchText) {
-        // if (!this.searchable || this.readonly || !searchText) {
-        //   this.readonly = false;
-        //   this.$refs.search.focus();
-        //   return;
-        // }
-        // this.readonly = !this.searchable;
-
         if (!searchText) return;
 
         let option = searchText;
@@ -617,12 +610,10 @@ export default {
     getGroupLabel(group) {
       return group && Object.prototype.hasOwnProperty.call(group, this.groupLabel)
         && group[this.groupLabel];
-      // return this.isGroups() && group && group[this.groupLabel];
     },
     getGroupValues(group) {
       return group && Object.prototype.hasOwnProperty.call(group, this.groupValues)
         && group[this.groupValues];
-      // return this.isGroups() && group && group[this.groupValues];
     },
     includeSearchString(string) {
       if (this.caseSensitivity) {
