@@ -4,9 +4,6 @@
        class="combobox"
        :style="{'width': width}">
   
-    <input type="checkbox"
-           v-model="more">
-  
     <div class="display">
       <template v-if="multiple">
         <div class="tag"
