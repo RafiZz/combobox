@@ -212,6 +212,15 @@ function throttle(callback, limit) {
   }
 }
 
+function getProperty(obj, prop) {
+  return prop.split('.')
+    .reduce((m, i) =>
+      m && typeof m === 'object'
+        ? m[i]
+        : []
+    , obj);
+}
+
 export default {
   name: 'ComboBox',
   model: {
@@ -348,21 +357,23 @@ export default {
     },
     successCallback: {
       type: Function,
-      default(objects) {
-        let options = objects;
-        if (this.isGroup()) {
+      default(data) {
+        let options = data;
+
+        if (this.isGroups()) {
           const group = {};
-          options[this.groupLabel] = `Page ${this.page}`;
-          options[this.groupValues] = objects;
+          group[this.groupLabel] = `Page ${this.page}`;
+          group[this.groupValues] = options;
           options = [group];
         }
-        return options;
+
+        return options || [];
       }
     },
     errorCallback: {
       type: Function,
       default(error) {
-        global.console.error('errorCallback', error.status, error.statusText);
+        global.console.error('errorCallback', error);
       }
     },
     showNoResult: {
@@ -380,6 +391,10 @@ export default {
     internalSearch: {
       type: Boolean,
       default: true
+    },
+    dataPath: {
+      type: String,
+      default: 'body.data'
     },
   },
   data() {
@@ -572,18 +587,14 @@ export default {
       }
       this.$http(props)
         .then(response => {
-          const newOptions = this.successCallback(response);
+          const data = getProperty(response, this.dataPath);
+          const newOptions = this.successCallback(data) || [];
 
-          let length;
-          if (newOptions && newOptions[0]) {
-            length = this.isGroups() ? this.getGroupValues(newOptions[0]).length : newOptions.length;
-          } else {
-            this.more = false;
-          }
+          const length = data && data.length
+            ? data.length
+            : newOptions.length;
 
-          if (!newOptions || (length < this.pageSize)) {
-            this.more = false;
-          }
+          this.more = !!length;
 
           if (newOptions && (this.page > 1)) {
             this.currentOptions = this.currentOptions.concat(newOptions);

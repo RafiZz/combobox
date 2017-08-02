@@ -6,7 +6,7 @@
     <combo-box v-model="selectedOptions"
                groupLabel="name"
                groupValues="values"
-               optionLabel="name"
+               optionLabel="title"
                optionValue="id"
                :initOpen="true"
                :closeOnSelect="false"
@@ -36,13 +36,12 @@
                url="https://jsonplaceholder.typicode.com/posts"
                :pageSize="15"
                :debounce="2000"
-               :successCallback="successCallback"
-               :errorCallback="errorCallback"
                :showNoResult="false"
                :showFirstOption="false"
                :showLastOption="false"
                :internalSearch="true"
-               :tag="tag">
+               :tag="tag"
+               dataPath="data">
   
       <template slot="noResult"
                 scope="props">
