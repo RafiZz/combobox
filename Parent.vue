@@ -41,7 +41,7 @@
                :showNoResult="false"
                :showFirstOption="false"
                :showLastOption="false"
-               :internalSearch="false"
+               :internalSearch="true"
                :tag="tag">
   
       <template slot="noResult"
@@ -118,7 +118,6 @@ export default {
   },
   mounted() {
     this.options = this.groups;
-    global.console.log(this);
   },
   methods: {
     tag(searchText) {

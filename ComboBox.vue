@@ -4,6 +4,9 @@
        class="combobox"
        :style="{'width': width}">
   
+    <input type="checkbox"
+           v-model="more">
+  
     <div class="display">
       <template v-if="multiple">
         <div class="tag"
@@ -395,6 +398,7 @@ export default {
       currentOptions: this.options,
       isLoading: false,
       page: 1,
+      more: true,
     }
   },
   computed: {
@@ -501,6 +505,7 @@ export default {
       this.$emit('searchChange', newValue, oldValue);
 
       if (this.url) {
+        this.more = true;
         this.page = 1;
         this.throttledApiCall();
         this.$refs.dropdown.scrollTop = 0;
@@ -545,7 +550,7 @@ export default {
   },
   methods: {
     onScroll(e) {
-      if (!this.url) return;
+      if (!this.url || !this.more) return;
 
       const { scrollHeight, scrollTop, clientHeight } = e.target;
       const scrollEnd = scrollHeight - scrollTop === clientHeight;
@@ -570,11 +575,25 @@ export default {
       }
       this.$http(props)
         .then(response => {
-          if (this.page > 1) {
-            this.currentOptions = this.currentOptions.concat(this.successCallback(response));
+          const newOptions = this.successCallback(response);
+
+          let length;
+          if (newOptions && newOptions[0]) {
+            length = this.isGroups() ? this.getGroupValues(newOptions[0]).length : newOptions.length;
           } else {
-            this.currentOptions = this.successCallback(response);
+            this.more = false;
           }
+
+          if (!newOptions || (length < this.pageSize)) {
+            this.more = false;
+          }
+
+          if (newOptions && (this.page > 1)) {
+            this.currentOptions = this.currentOptions.concat(newOptions);
+          } else {
+            this.currentOptions = newOptions;
+          }
+
           this.isLoading = false;
         })
         .catch(error => {
@@ -596,10 +615,10 @@ export default {
       return option;
     },
     isGroups() {
-      return this.groupLabel && this.groupValues;
+      return !!(this.groupLabel && this.groupValues);
     },
     isObjects() {
-      return this.optionLabel && this.optionValue;
+      return !!(this.optionLabel && this.optionValue);
     },
     getOptionLabel(option) {
       return this.isObjects() ? option[this.optionLabel] : option;
