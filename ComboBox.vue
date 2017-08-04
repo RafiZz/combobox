@@ -485,7 +485,7 @@ export default {
         'transition-duration': `${this.transitionDuration}ms`,
       };
       if (this.currentPosition === 'top') {
-        styles.bottom = '42px';
+        styles.bottom = '36px';
         if (this.$refs.display) {
           styles.bottom = `${this.$refs.display.clientHeight}px`;
         }
@@ -687,23 +687,18 @@ export default {
       const dropdown = this.$refs.dropdown;
       if (!combobox || !dropdown) return;
       const clientHeight = document.documentElement.clientHeight;
-      let dropdownNeededHeight = 0;
-      for (let i = 0; i < dropdown.children.length; i += 1) {
-        dropdownNeededHeight += dropdown.children[i].offsetHeight;
-      }
       const distanceTo = combobox.getBoundingClientRect();
       const distanceToTop = distanceTo.top;
       const distanceToBottom = clientHeight - distanceTo.bottom;
       const isFitBottom = this.maxHeight < distanceToBottom;
       const isFitTop = this.maxHeight < distanceToTop;
 
-      if (!isFitBottom && (distanceToTop > distanceToBottom) && (distanceToTop > 50)) {
+      if (!isFitBottom && (distanceToTop > distanceToBottom)) {
         this.currentPosition = 'top';
-        this.height = Math.min(this.maxHeight, distanceToTop, dropdownNeededHeight);
+        this.height = Math.min(this.maxHeight, distanceToTop);
       } else if (!isFitTop && distanceToBottom > distanceToTop) {
         this.currentPosition = 'bottom';
-        this.height = Math.min(this.maxHeight, dropdownNeededHeight);
-        if (distanceToBottom > 50) this.height = Math.min(distanceToBottom, this.height)
+        this.height = this.maxHeight;
       } else {
         this.currentPosition = this.position;
         this.height = this.maxHeight;
