@@ -768,7 +768,7 @@ export default {
       if (forTagPointers.indexOf(pointer) > -1) {
         this.tag(this.search);
       } else {
-        if (!pointer) return;
+        if (!pointer && pointer !== 0) return;
         this.select(pointer);
       }
     },
